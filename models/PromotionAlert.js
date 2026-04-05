@@ -1,11 +1,13 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const promotionAlertSchema = new mongoose.Schema({
-    employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    triggeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    message: { type: String, required: true },
-    type: { type: String, enum: ['Alert', 'PromotionOffer'], default: 'Alert' },
-    status: { type: String, enum: ['Unread', 'Read', 'Accepted', 'Rejected'], default: 'Unread' }
+const PromotionAlert = sequelize.define('PromotionAlert', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    employee: { type: DataTypes.INTEGER, allowNull: false },
+    triggeredBy: { type: DataTypes.INTEGER, allowNull: false },
+    message: { type: DataTypes.TEXT, allowNull: false },
+    type: { type: DataTypes.ENUM('Alert', 'PromotionOffer'), defaultValue: 'Alert' },
+    status: { type: DataTypes.ENUM('Unread', 'Read', 'Accepted', 'Rejected'), defaultValue: 'Unread' }
 }, { timestamps: true });
 
-module.exports = mongoose.model('PromotionAlert', promotionAlertSchema);
+module.exports = PromotionAlert;

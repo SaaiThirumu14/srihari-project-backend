@@ -1,22 +1,18 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const OrderSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    userName: { type: String, required: true },
-    items: [{
-        menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem' },
-        name: { type: String, required: true },
-        quantity: { type: Number, default: 1 },
-        price: { type: Number, required: true }
-    }],
-    totalPrice: { type: Number, required: true },
-    deliveryTime: { type: String, required: true },
-    deliveryLocation: { type: String, required: true },
-    status: { type: String, enum: ['Pending', 'Preparing', 'Ready', 'Delivered'], default: 'Pending' },
-    estimatedReadyTime: { type: String },
-    rating: { type: Number, min: 1, max: 5 },
-    feedback: { type: String },
-    createdAt: { type: Date, default: Date.now }
-});
+const Order = sequelize.define('Order', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    userName: { type: DataTypes.STRING, allowNull: false },
+    items: { type: DataTypes.JSON, defaultValue: [] },
+    totalPrice: { type: DataTypes.FLOAT, allowNull: false },
+    deliveryTime: { type: DataTypes.STRING, allowNull: false },
+    deliveryLocation: { type: DataTypes.STRING, allowNull: false },
+    status: { type: DataTypes.ENUM('Pending', 'Preparing', 'Ready', 'Delivered'), defaultValue: 'Pending' },
+    estimatedReadyTime: { type: DataTypes.STRING },
+    rating: { type: DataTypes.INTEGER },
+    feedback: { type: DataTypes.TEXT }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Order', OrderSchema);
+module.exports = Order;

@@ -7,44 +7,48 @@ const GamificationService = require('../services/gamificationService');
 
 // Menu
 exports.getAllMenuItems = async (req, res) => {
-    try { res.json(await MenuItem.find()); } catch (err) { res.status(500).json({ message: err.message }); }
+    try { res.json(await MenuItem.findAll()); } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.createMenuItem = async (req, res) => {
     try { res.status(201).json(await MenuItem.create(req.body)); } catch (err) { res.status(400).json({ message: err.message }); }
 };
 exports.deleteMenuItem = async (req, res) => {
-    try { await MenuItem.findByIdAndDelete(req.params.id); res.json({ message: 'Removed' }); } catch (err) { res.status(500).json({ message: err.message }); }
+    try {
+        await MenuItem.destroy({ where: { id: req.params.id } });
+        res.json({ message: 'Removed' });
+    } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 // Orders
 exports.placeOrder = async (req, res) => {
     try {
         const { items, totalPrice, deliveryTime, deliveryLocation } = req.body;
-        const newOrder = await Order.create({ userId: req.user._id, userName: req.user.name, items, totalPrice, deliveryTime, deliveryLocation });
-        await GamificationService.rewardFoodOrder(req.user._id, totalPrice);
+        const newOrder = await Order.create({ userId: req.user.id, userName: req.user.name, items, totalPrice, deliveryTime, deliveryLocation });
+        await GamificationService.rewardFoodOrder(req.user.id, totalPrice);
         res.status(201).json(newOrder);
     } catch (err) { res.status(400).json({ message: err.message }); }
 };
 exports.getAllOrders = async (req, res) => {
-    try { res.json(await Order.find().sort({ createdAt: -1 })); } catch (err) { res.status(500).json({ message: err.message }); }
+    try { res.json(await Order.findAll({ order: [['createdAt', 'DESC']] })); } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.getMyOrders = async (req, res) => {
     try {
-        const filter = ['Chef', 'Admin'].includes(req.user.role) ? {} : { userId: req.user._id };
-        res.json(await Order.find(filter).sort({ createdAt: -1 }));
+        const where = ['Chef', 'Admin'].includes(req.user.role) ? {} : { userId: req.user.id };
+        res.json(await Order.findAll({ where, order: [['createdAt', 'DESC']] }));
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const order = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const order = await Order.findByPk(req.params.id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
+        await order.update(req.body);
         res.json(order);
     } catch (err) { res.status(400).json({ message: err.message }); }
 };
 
 // Polls
 exports.getPolls = async (req, res) => {
-    try { res.json(await Poll.find().sort({ createdAt: -1 })); } catch (err) { res.status(500).json({ message: err.message }); }
+    try { res.json(await Poll.findAll({ order: [['createdAt', 'DESC']] })); } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.createPoll = async (req, res) => {
     try {
@@ -53,43 +57,76 @@ exports.createPoll = async (req, res) => {
     } catch (err) { res.status(400).json({ message: err.message }); }
 };
 exports.deletePoll = async (req, res) => {
-    try { await Poll.findByIdAndDelete(req.params.id); res.json({ message: 'Poll deleted' }); } catch (err) { res.status(500).json({ message: err.message }); }
+    try { await Poll.destroy({ where: { id: req.params.id } }); res.json({ message: 'Poll deleted' }); } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.votePoll = async (req, res) => {
     const { pollId, optionId } = req.body;
     try {
-        const poll = await Poll.findById(pollId);
+        const poll = await Poll.findByPk(pollId);
         if (!poll) return res.status(404).json({ message: 'Poll not found' });
-        if (poll.votedEmployees.find(v => v.employeeId.toString() === req.user._id.toString())) return res.status(400).json({ message: 'Already voted' });
-        const option = poll.options.find(opt => opt.id === optionId);
-        if (option) {
-            option.votes += 1;
-            poll.votedEmployees.push({ employeeId: req.user._id, optionId, submittedAt: new Date() });
-            await poll.save();
-            await GamificationService.awardPoints(req.user._id, 5, 'Poll Engagement');
-            res.json(poll);
-        } else res.status(404).json({ message: 'Option not found' });
-    } catch (err) { res.status(400).json({ message: err.message }); }
+
+        // Ensure JSON parsing for robustness
+        let votedEmployees = poll.votedEmployees;
+        if (typeof votedEmployees === 'string') try { votedEmployees = JSON.parse(votedEmployees); } catch { votedEmployees = []; }
+        if (!votedEmployees) votedEmployees = [];
+
+        let options = poll.options;
+        if (typeof options === 'string') try { options = JSON.parse(options); } catch { options = []; }
+        if (!options) options = [];
+
+        const voted = votedEmployees.find(v => v.employeeId == req.user.id);
+        if (voted) return res.status(400).json({ message: 'Already voted' });
+
+        const updatedOptions = options.map(opt => {
+            // Use loose equality to handle string/number mismatches in IDs
+            if (opt.id == optionId) return { ...opt, votes: (opt.votes || 0) + 1 };
+            return opt;
+        });
+        const updatedVoted = [...votedEmployees, { employeeId: req.user.id, optionId, submittedAt: new Date() }];
+
+        poll.options = updatedOptions;
+        poll.votedEmployees = updatedVoted;
+        await poll.save();
+
+        await GamificationService.awardPoints(req.user.id, 5, 'Poll Engagement');
+        res.json(poll);
+    } catch (err) {
+        console.error('❌ Vote Error:', err.message);
+        res.status(400).json({ message: err.message });
+    }
 };
 
 // Suggestions
 exports.submitSuggestion = async (req, res) => {
     try {
-        const { foodName, description } = req.body;
-        res.status(201).json(await FoodSuggestion.create({ employeeId: req.user._id, employeeName: req.user.name, foodName, description }));
+        const { foodName, description, suggestedMeal } = req.body;
+        const name = foodName || suggestedMeal;
+        if (!name) return res.status(400).json({ message: 'Food name is required' });
+        
+        res.status(201).json(await FoodSuggestion.create({ 
+            employeeId: req.user.id, 
+            employeeName: req.user.name, 
+            foodName: name, 
+            description: description || 'No description provided' 
+        }));
     } catch (err) { res.status(400).json({ message: err.message }); }
 };
 exports.getSuggestions = async (req, res) => {
     try {
-        const filter = ['Chef', 'Admin'].includes(req.user.role) ? {} : { employeeId: req.user._id };
-        res.json(await FoodSuggestion.find(filter).sort({ createdAt: -1 }));
+        const where = ['Chef', 'Admin'].includes(req.user.role) ? {} : { employeeId: req.user.id };
+        res.json(await FoodSuggestion.findAll({ where, order: [['createdAt', 'DESC']] }));
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 exports.updateSuggestionStatus = async (req, res) => {
-    try { res.json(await FoodSuggestion.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true })); } catch (err) { res.status(400).json({ message: err.message }); }
+    try {
+        const item = await FoodSuggestion.findByPk(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Not found' });
+        await item.update({ status: req.body.status });
+        res.json(item);
+    } catch (err) { res.status(400).json({ message: err.message }); }
 };
 
 // Feedback
 exports.submitFeedback = async (req, res) => {
-    try { res.status(201).json(await Feedback.create({ userId: req.user._id, userName: req.user.name, ...req.body })); } catch (err) { res.status(400).json({ message: err.message }); }
+    try { res.status(201).json(await Feedback.create({ userId: req.user.id, userName: req.user.name, ...req.body })); } catch (err) { res.status(400).json({ message: err.message }); }
 };

@@ -1,0 +1,87 @@
+﻿Database connected.
+--- USERS_START ---
+[
+  {
+    "id": 1,
+    "name": "Super Admin",
+    "role": "Admin",
+    "department": "Management"
+  },
+  {
+    "id": 2,
+    "name": "HR Manager",
+    "role": "HR",
+    "department": "Management"
+  },
+  {
+    "id": 3,
+    "name": "Team Lead",
+    "role": "TeamLeader",
+    "department": "Engineering"
+  },
+  {
+    "id": 4,
+    "name": "Chef Gordon",
+    "role": "Chef",
+    "department": "Cafeteria"
+  },
+  {
+    "id": 5,
+    "name": "Alice Coder",
+    "role": "Employee",
+    "department": "Engineering"
+  },
+  {
+    "id": 6,
+    "name": "John Doe",
+    "role": "Employee",
+    "department": "Marketing"
+  },
+  {
+    "id": 7,
+    "name": "kavin",
+    "role": "Employee",
+    "department": "Full Stack Developer"
+  },
+  {
+    "id": 8,
+    "name": "praveen",
+    "role": "TeamLeader",
+    "department": "Full Stack Developer"
+  }
+]
+--- USERS_END ---
+
+--- SURVEYS_START ---
+[
+  {
+    "id": 1,
+    "employeeName": "Alice Coder",
+    "department": "Engineering",
+    "forwardedToHR": true
+  },
+  {
+    "id": 2,
+    "employeeName": "kavin",
+    "department": "Full Stack Developer",
+    "forwardedToHR": false
+  }
+]
+--- SURVEYS_END ---
+
+--- PREDICTIONS_START ---
+[
+  {
+    "id": 1,
+    "employeeName": "Alice Coder",
+    "prediction": "Leave",
+    "riskLevel": "High"
+  },
+  {
+    "id": 2,
+    "employeeName": "kavin",
+    "prediction": "Leave",
+    "riskLevel": "High"
+  }
+]
+--- PREDICTIONS_END ---

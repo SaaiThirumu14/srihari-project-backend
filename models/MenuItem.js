@@ -1,15 +1,17 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const MenuItemSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    category: { type: String, required: true },
-    price: { type: Number, required: true },
-    calories: { type: Number },
-    image: { type: String },
-    description: { type: String },
-    popular: { type: Boolean, default: false },
-    isSpecial: { type: Boolean, default: false },
-    available: { type: Boolean, default: true }
-});
+const MenuItem = sequelize.define('MenuItem', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING, allowNull: false },
+    category: { type: DataTypes.STRING, allowNull: false },
+    price: { type: DataTypes.FLOAT, allowNull: false },
+    calories: { type: DataTypes.INTEGER },
+    image: { type: DataTypes.STRING },
+    description: { type: DataTypes.TEXT },
+    popular: { type: DataTypes.BOOLEAN, defaultValue: false },
+    isSpecial: { type: DataTypes.BOOLEAN, defaultValue: false },
+    available: { type: DataTypes.BOOLEAN, defaultValue: true }
+}, { timestamps: true });
 
-module.exports = mongoose.model('MenuItem', MenuItemSchema);
+module.exports = MenuItem;

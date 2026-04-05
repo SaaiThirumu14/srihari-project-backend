@@ -9,9 +9,9 @@ function catboostScore(surveyData) {
 
     const deptRisk = deptRiskMap[department] || 0.35;
     const genderRisk = genderRiskMap[gender] || 0.31;
-    const r = responses;
-    const satisfactionIndex = (r.jobSatisfaction + r.compensationSatisfaction + r.overallHappiness) / 30;
-    const loyaltyIndex = (r.companyLoyalty + r.careerGrowth) / 20;
+    const r = typeof responses === 'string' ? JSON.parse(responses) : (responses || {});
+    const satisfactionIndex = ((r.jobSatisfaction || 5) + (r.compensationSatisfaction || 5) + (r.overallHappiness || 5)) / 30;
+    const loyaltyIndex = ((r.companyLoyalty || 5) + (r.careerGrowth || 5)) / 20;
 
     let leafScore = (deptRisk * 0.3) + (genderRisk * 0.15);
     leafScore += (1 - satisfactionIndex) * 0.35;

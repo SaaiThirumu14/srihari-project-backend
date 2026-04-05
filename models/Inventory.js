@@ -1,16 +1,17 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const inventorySchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    quantity: { type: Number, required: true, default: 0 },
-    unit: { type: String, required: true, default: 'units' },
-    threshold: { type: Number, default: 10 },
+const Inventory = sequelize.define('Inventory', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING, allowNull: false, unique: true },
+    quantity: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+    unit: { type: DataTypes.STRING, allowNull: false, defaultValue: 'units' },
+    threshold: { type: DataTypes.FLOAT, defaultValue: 10 },
     category: {
-        type: String,
-        enum: ['Produce', 'Grains', 'Meat', 'Dairy', 'Spices', 'Other'],
-        default: 'Other'
+        type: DataTypes.ENUM('Produce', 'Grains', 'Meat', 'Dairy', 'Spices', 'Other'),
+        defaultValue: 'Other'
     },
-    lastUpdated: { type: Date, default: Date.now }
+    lastUpdated: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Inventory', inventorySchema);
+module.exports = Inventory;

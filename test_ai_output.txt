@@ -1,0 +1,18 @@
+﻿DB connected.
+Found 2 surveys.
+
+--- Survey ID: 1 ---
+Employee: Alice Coder
+Responses type: string
+Responses keys: jobSatisfaction, workLifeBalance, stressLevel, relationshipWithTeam, relationshipWithTL, managerSupport, careerGrowth, compensationSatisfaction, workload, recognitionAndRewards, companyLoyalty, mentalHealthSupport, remoteWorkFlexibility, learningOpportunities, communicationClarity, inclusionAndDiversity, workEnvironment, overallHappiness
+Responses values sample: jobSatisfaction=4, stressLevel=5
+Running ensemble...
+SUCCESS! Prediction: At Risk Risk: Medium
+
+--- Survey ID: 2 ---
+Employee: kavin
+Responses type: string
+Responses keys: jobSatisfaction, workLifeBalance, stressLevel, relationshipWithTL, relationshipWithTeam, managerSupport, careerGrowth, compensationSatisfaction, workload, recognitionAndRewards, companyLoyalty, mentalHealthSupport, learningOpportunities, remoteWorkFlexibility, communicationClarity, overallHappiness, inclusionAndDiversity, workEnvironment
+Responses values sample: jobSatisfaction=3, stressLevel=6
+Running ensemble...
+SUCCESS! Prediction: At Risk Risk: Medium

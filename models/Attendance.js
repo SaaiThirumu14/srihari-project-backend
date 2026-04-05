@@ -1,19 +1,23 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
+const User = require('./User');
 
-const attendanceSchema = new mongoose.Schema({
-    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    date: { type: Date, required: true },
-    checkIn: { type: Date },
-    checkOut: { type: Date },
+const Attendance = sequelize.define('Attendance', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    employeeId: { type: DataTypes.INTEGER, allowNull: false },
+    date: { type: DataTypes.DATEONLY, allowNull: false },
+    checkIn: { type: DataTypes.DATE },
+    checkOut: { type: DataTypes.DATE },
     status: {
-        type: String,
-        enum: ['Present', 'Absent', 'Late', 'On Leave'],
-        default: 'Absent'
+        type: DataTypes.ENUM('Present', 'Absent', 'Late', 'On Leave'),
+        defaultValue: 'Absent'
     },
-    location: { type: String },
-    device: { type: String },
-    anomalyDetected: { type: Boolean, default: false },
-    anomalyReason: { type: String }
-});
+    location: { type: DataTypes.STRING },
+    device: { type: DataTypes.STRING },
+    anomalyDetected: { type: DataTypes.BOOLEAN, defaultValue: false },
+    anomalyReason: { type: DataTypes.STRING }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Attendance', attendanceSchema);
+Attendance.belongsTo(User, { as: 'employee', foreignKey: 'employeeId' });
+
+module.exports = Attendance;

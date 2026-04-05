@@ -1,12 +1,13 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const FoodSuggestionSchema = new mongoose.Schema({
-    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    employeeName: { type: String, required: true },
-    foodName: { type: String, required: true },
-    description: { type: String },
-    status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
-    createdAt: { type: Date, default: Date.now }
-});
+const FoodSuggestion = sequelize.define('FoodSuggestion', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    employeeId: { type: DataTypes.INTEGER, allowNull: false },
+    employeeName: { type: DataTypes.STRING, allowNull: false },
+    foodName: { type: DataTypes.STRING, allowNull: false },
+    description: { type: DataTypes.TEXT },
+    status: { type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'), defaultValue: 'Pending' }
+}, { timestamps: true });
 
-module.exports = mongoose.model('FoodSuggestion', FoodSuggestionSchema);
+module.exports = FoodSuggestion;

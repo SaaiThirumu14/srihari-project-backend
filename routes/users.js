@@ -10,6 +10,7 @@ router.put('/:id/recommend-promotion', protect, authorize('TeamLeader'), recomme
 router.post('/:id/points', protect, authorize('Admin'), addPoints);
 router.post('/:id/demerits', protect, authorize('Admin', 'HR'), addDemerits);
 router.get('/me/points', protect, getPointTransactions);
+router.put('/me/face', protect, (req, res, next) => { req.params.id = req.user.id; next(); }, updateFace);
 router.put('/:id/face', protect, updateFace);
 
 module.exports = router;

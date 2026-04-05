@@ -1,11 +1,12 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const pointTransactionSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    amount: { type: Number, required: true },
-    type: { type: String, enum: ['Credit', 'Debit'], required: true },
-    description: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
-});
+const PointTransaction = sequelize.define('PointTransaction', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    amount: { type: DataTypes.INTEGER, allowNull: false },
+    type: { type: DataTypes.ENUM('Credit', 'Debit'), allowNull: false },
+    description: { type: DataTypes.STRING, allowNull: false }
+}, { timestamps: true });
 
-module.exports = mongoose.model('PointTransaction', pointTransactionSchema);
+module.exports = PointTransaction;

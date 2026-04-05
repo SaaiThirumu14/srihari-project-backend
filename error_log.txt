@@ -1,0 +1,4 @@
+TypeError: Cannot create property 'workCapability' on string '{"workCapability":0,"timeManagement":0,"problemSolving":0,"overallScore":0}'
+    at GamificationService.updateTaskMetrics (C:\final-prj\backend\services\gamificationService.js:45:45)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\final-prj\backend\test_task.js:15:13

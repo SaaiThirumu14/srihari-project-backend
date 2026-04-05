@@ -1,13 +1,14 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const shoutoutSchema = new mongoose.Schema({
-    fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    fromUserName: { type: String, required: true },
-    toUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    toUserName: { type: String, required: true },
-    message: { type: String, required: true },
-    pointsGiven: { type: Number, default: 5 },
-    createdAt: { type: Date, default: Date.now }
-});
+const Shoutout = sequelize.define('Shoutout', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    fromUserId: { type: DataTypes.INTEGER, allowNull: false },
+    fromUserName: { type: DataTypes.STRING, allowNull: false },
+    toUserId: { type: DataTypes.INTEGER, allowNull: false },
+    toUserName: { type: DataTypes.STRING, allowNull: false },
+    message: { type: DataTypes.TEXT, allowNull: false },
+    pointsGiven: { type: DataTypes.INTEGER, defaultValue: 5 }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Shoutout', shoutoutSchema);
+module.exports = Shoutout;

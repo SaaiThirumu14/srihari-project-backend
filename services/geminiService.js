@@ -8,21 +8,34 @@ function initGemini() {
         console.warn('⚠️  GEMINI_API_KEY not set. AI features will use fallback responses.');
         return false;
     }
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    console.log('✅ Gemini 2.5 AI Service initialized');
-    return true;
+    try {
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        // Using gemini-1.5-flash for broader compatibility and speed
+        model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        console.log('✅ Gemini 1.5 AI Service initialized');
+        return true;
+    } catch (err) {
+        console.error('❌ Gemini Initialization Error:', err.message);
+        return false;
+    }
 }
 
 async function generateContent(prompt) {
     if (!model) {
+        console.warn('⚠️ Gemini model not initialized. Skipping content generation.');
         return null;
     }
     try {
+        console.log("Generating AI content with Gemini...");
         const result = await model.generateContent(prompt);
-        return result.response.text();
+        const text = result.response.text();
+        if (!text) throw new Error("Empty response from Gemini");
+        return text;
     } catch (error) {
-        console.error('Gemini API Error:', error.message);
+        console.error('❌ Gemini API Error:', error.message);
+        if (error.message.includes('API_KEY_INVALID')) {
+            console.error('Critical: The GEMINI_API_KEY in .env is invalid.');
+        }
         return null;
     }
 }

@@ -1,18 +1,18 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
+const User = require('./User');
 
-const leaveSchema = new mongoose.Schema({
-    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
-    reason: { type: String },
-    status: {
-        type: String,
-        enum: ['Pending', 'Approved', 'Rejected'],
-        default: 'Pending'
-    },
-    appliedAt: { type: Date, default: Date.now },
-    aiRecommendation: { type: String },
-    aiConfidence: { type: Number }
-});
+const Leave = sequelize.define('Leave', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    employeeId: { type: DataTypes.INTEGER, allowNull: false },
+    startDate: { type: DataTypes.DATEONLY, allowNull: false },
+    endDate: { type: DataTypes.DATEONLY, allowNull: false },
+    reason: { type: DataTypes.TEXT },
+    status: { type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'), defaultValue: 'Pending' },
+    aiRecommendation: { type: DataTypes.TEXT },
+    aiConfidence: { type: DataTypes.FLOAT }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Leave', leaveSchema);
+Leave.belongsTo(User, { as: 'employee', foreignKey: 'employeeId' });
+
+module.exports = Leave;

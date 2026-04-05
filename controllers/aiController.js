@@ -3,16 +3,17 @@ const AttritionPrediction = require('../models/AttritionPrediction');
 const Attendance = require('../models/Attendance');
 const Leave = require('../models/Leave');
 const User = require('../models/User');
+const { sequelize } = require('../config/db');
 const { runEnsemble } = require('../ai/ensembleEngine');
 const { chatWithAI, predictAbsenteeism, forecastWorkforce } = require('../services/geminiService');
 
 const runPrediction = async (req, res) => {
     try {
-        const survey = await Survey.findById(req.params.surveyId);
+        const survey = await Survey.findByPk(req.params.surveyId);
         if (!survey) return res.status(404).json({ message: 'Survey not found' });
 
         const surveyData = {
-            responses: survey.responses.toObject ? survey.responses.toObject() : survey.responses,
+            responses: survey.responses,
             age: survey.age, gender: survey.gender, department: survey.department,
             yearsAtCompany: survey.yearsAtCompany, employeeId: survey.employeeId,
             employeeName: survey.employeeName
@@ -20,11 +21,12 @@ const runPrediction = async (req, res) => {
 
         const aiResults = await runEnsemble(surveyData, Survey);
 
-        const prediction = await AttritionPrediction.findOneAndUpdate(
-            { surveyId: survey._id },
-            { surveyId: survey._id, employeeId: survey.employeeId, employeeName: survey.employeeName, department: survey.department, ...aiResults },
-            { upsert: true, new: true }
-        );
+        let prediction = await AttritionPrediction.findOne({ where: { surveyId: survey.id } });
+        if (prediction) {
+            await prediction.update({ employeeId: survey.employeeId, employeeName: survey.employeeName, department: survey.department, ...aiResults });
+        } else {
+            prediction = await AttritionPrediction.create({ surveyId: survey.id, employeeId: survey.employeeId, employeeName: survey.employeeName, department: survey.department, ...aiResults });
+        }
 
         res.json({ message: 'Prediction generated', prediction });
     } catch (err) {
@@ -34,7 +36,7 @@ const runPrediction = async (req, res) => {
 
 const getPrediction = async (req, res) => {
     try {
-        const prediction = await AttritionPrediction.findOne({ surveyId: req.params.surveyId });
+        const prediction = await AttritionPrediction.findOne({ where: { surveyId: req.params.surveyId } });
         if (!prediction) return res.status(404).json({ message: 'No prediction yet. Run AI first.' });
         res.json({ prediction });
     } catch (err) {
@@ -44,7 +46,7 @@ const getPrediction = async (req, res) => {
 
 const getAllPredictions = async (req, res) => {
     try {
-        const predictions = await AttritionPrediction.find({}).sort({ createdAt: -1 });
+        const predictions = await AttritionPrediction.findAll({ order: [['createdAt', 'DESC']] });
         res.json({ predictions });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -54,12 +56,9 @@ const getAllPredictions = async (req, res) => {
 const updateDecision = async (req, res) => {
     try {
         const { hrDecision, hrNotes } = req.body;
-        const prediction = await AttritionPrediction.findOneAndUpdate(
-            { surveyId: req.params.surveyId },
-            { hrDecision, hrNotes, decidedAt: new Date() },
-            { new: true }
-        );
+        const prediction = await AttritionPrediction.findOne({ where: { surveyId: req.params.surveyId } });
         if (!prediction) return res.status(404).json({ message: 'Prediction not found' });
+        await prediction.update({ hrDecision, hrNotes, decidedAt: new Date() });
         res.json({ message: 'Decision updated', prediction });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -68,7 +67,7 @@ const updateDecision = async (req, res) => {
 
 const getRetention = async (req, res) => {
     try {
-        const prediction = await AttritionPrediction.findOne({ surveyId: req.params.surveyId });
+        const prediction = await AttritionPrediction.findOne({ where: { surveyId: req.params.surveyId } });
         if (!prediction) return res.status(404).json({ message: 'No prediction available' });
         res.json({
             retentionStrategies: prediction.retentionStrategies, riskLevel: prediction.riskLevel,
@@ -82,7 +81,7 @@ const getRetention = async (req, res) => {
 
 const getStats = async (req, res) => {
     try {
-        const predictions = await AttritionPrediction.find({});
+        const predictions = await AttritionPrediction.findAll();
         const total = predictions.length;
         const stay = predictions.filter(p => p.prediction === 'Stay').length;
         const atRisk = predictions.filter(p => p.prediction === 'At Risk').length;
@@ -107,10 +106,10 @@ const aiChat = async (req, res) => {
 const aiAbsenteeism = async (req, res) => {
     try {
         const { employeeId } = req.params;
-        const user = await User.findById(employeeId);
+        const user = await User.findByPk(employeeId);
         if (!user) return res.status(404).json({ message: 'Employee not found' });
-        const attendance = await Attendance.find({ employeeId }).sort({ date: -1 }).limit(30);
-        const leaves = await Leave.find({ employeeId }).sort({ appliedAt: -1 }).limit(10);
+        const attendance = await Attendance.findAll({ where: { employeeId }, order: [['date', 'DESC']], limit: 30 });
+        const leaves = await Leave.findAll({ where: { employeeId }, order: [['createdAt', 'DESC']], limit: 10 });
         const result = await predictAbsenteeism(attendance, leaves, user.name);
         res.json({ employeeId, employeeName: user.name, ...result });
     } catch (err) {
@@ -131,34 +130,32 @@ const aiForecast = async (req, res) => {
 const simulateScenario = async (req, res) => {
     try {
         const { surveyId, salaryAdjustment, stressReduction } = req.body;
-        const survey = await Survey.findById(surveyId);
+        const survey = await Survey.findByPk(surveyId);
         if (!survey) return res.status(404).json({ message: 'Survey not found.' });
 
-        // Clone and tweak survey data for simulation
-        const simulatedData = { ...survey.toObject() };
+        const simulatedData = { ...survey.toJSON() };
         if (salaryAdjustment) simulatedData.responses.compensationSatisfaction = Math.min(10, simulatedData.responses.compensationSatisfaction + salaryAdjustment);
         if (stressReduction) simulatedData.responses.stressLevel = Math.max(1, simulatedData.responses.stressLevel - stressReduction);
 
         const aiResults = await runEnsemble(simulatedData, Survey);
 
-        // Update the prediction record with last simulation
-        await AttritionPrediction.findOneAndUpdate(
-            { surveyId },
-            { 
+        const prediction = await AttritionPrediction.findOne({ where: { surveyId } });
+        if (prediction) {
+            await prediction.update({
                 lastSimulation: {
                     scenario: `Salary +${salaryAdjustment || 0}, Stress -${stressReduction || 0}`,
                     newRiskScore: aiResults.ensembleScore,
-                    improvement: (survey.ensembleScore || 0) - aiResults.ensembleScore
+                    improvement: (prediction.ensembleScore || 0) - aiResults.ensembleScore
                 }
-            }
-        );
+            });
+        }
 
-        res.json({ 
-            message: 'Simulation Complete', 
-            originalScore: survey.ensembleScore || 0,
+        res.json({
+            message: 'Simulation Complete',
+            originalScore: prediction ? prediction.ensembleScore : 0,
             simulatedScore: aiResults.ensembleScore,
-            riskReduction: (survey.ensembleScore || 0) - aiResults.ensembleScore,
-            recommendation: aiResults.geminiInsight 
+            riskReduction: (prediction ? prediction.ensembleScore : 0) - aiResults.ensembleScore,
+            recommendation: aiResults.geminiInsight
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -167,18 +164,17 @@ const simulateScenario = async (req, res) => {
 
 const getHeatmap = async (req, res) => {
     try {
-        const heatmap = await AttritionPrediction.aggregate([
-            {
-                $group: {
-                    _id: "$department",
-                    avgRisk: { $avg: "$ensembleScore" },
-                    totalEmployees: { $sum: 1 },
-                    highRiskCount: { $sum: { $cond: [{ $eq: ["$riskLevel", "High"] }, 1, 0] } },
-                    totalCost: { $sum: "$attritionCost" }
-                }
-            },
-            { $sort: { avgRisk: -1 } }
-        ]);
+        const [heatmap] = await sequelize.query(`
+            SELECT 
+                department AS id,
+                AVG(ensembleScore) AS avgRisk,
+                COUNT(*) AS totalEmployees,
+                SUM(CASE WHEN riskLevel = 'High' THEN 1 ELSE 0 END) AS highRiskCount,
+                SUM(attritionCost) AS totalCost
+            FROM AttritionPredictions
+            GROUP BY department
+            ORDER BY avgRisk DESC
+        `);
         res.json({ heatmap });
     } catch (err) {
         res.status(500).json({ message: err.message });

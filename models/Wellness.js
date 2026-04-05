@@ -1,20 +1,23 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const wellnessSchema = new mongoose.Schema({
-    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    date: { type: Date, default: Date.now },
-    stressLevel: { type: Number, min: 1, max: 5 },
-    sleepQuality: { type: Number, min: 1, max: 5 },
-    physicalActivity: { type: Number, min: 1, max: 5 },
-    mood: { type: String, enum: ['Happy', 'Neutral', 'Sad', 'Anxious', 'Angry'] },
-    hydration: { type: Number, default: 0 }, // glasses of water
-    steps: { type: Number, default: 0 },
-    notes: { type: String },
-    sentiment: { type: String },
-    confidence: { type: Number },
-    geminiAdvice: { type: String },
-    nutritionRecommendation: { type: String },
-    createdAt: { type: Date, default: Date.now }
-});
+const Wellness = sequelize.define('Wellness', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    employeeId: { type: DataTypes.INTEGER, allowNull: false },
+    stressLevel: { type: DataTypes.INTEGER },
+    sleepQuality: { type: DataTypes.INTEGER },
+    physicalActivity: { type: DataTypes.INTEGER },
+    mood: { type: DataTypes.ENUM('Happy', 'Neutral', 'Sad', 'Anxious', 'Angry') },
+    hydration: { type: DataTypes.INTEGER, defaultValue: 0 },
+    steps: { type: DataTypes.INTEGER, defaultValue: 0 },
+    notes: { type: DataTypes.TEXT },
+    sentiment: { type: DataTypes.STRING },
+    confidence: { type: DataTypes.FLOAT },
+    geminiAdvice: { type: DataTypes.TEXT },
+    nutritionRecommendation: { type: DataTypes.TEXT }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Wellness', wellnessSchema);
+const User = require('./User');
+Wellness.belongsTo(User, { as: 'employee', foreignKey: 'employeeId' });
+
+module.exports = Wellness;
